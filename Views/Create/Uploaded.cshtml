@@ -1,0 +1,74 @@
+@model Viral2Anime.Models.Video.VideoProject
+
+@{
+    ViewData["Title"] = "Video Uploaded";
+    var duration = TimeSpan.FromSeconds(Model.DurationSeconds);
+}
+
+<div class="container mt-5" style="max-width: 760px;">
+
+    <h1 class="fw-bold">Video Ready</h1>
+
+    <div class="card mt-4">
+        <div class="card-body">
+
+            <h4>@Model.Title</h4>
+
+            <p>
+                <strong>Original file:</strong>
+                @Model.OriginalFileName
+            </p>
+
+            <p>
+                <strong>Output:</strong>
+                @Model.OutputType
+            </p>
+
+            <p>
+                <strong>Animation style:</strong>
+                @Model.AnimationStyle
+            </p>
+
+            <hr />
+
+            <h5>Video Analysis</h5>
+
+            <p>
+                <strong>Duration:</strong>
+                @duration.ToString(@"mm\:ss")
+            </p>
+
+            <p>
+                <strong>Resolution:</strong>
+                @Model.Width × @Model.Height
+            </p>
+
+            <p>
+                <strong>FPS:</strong>
+                @Model.FramesPerSecond.ToString("0.##")
+            </p>
+
+            <p>
+                <strong>Audio:</strong>
+                @(Model.HasAudio ? "Yes" : "No")
+            </p>
+
+            <p>
+                <strong>Format:</strong>
+                @Model.FormatName
+            </p>
+
+            <div class="alert alert-success mt-4">
+                Video inspection complete. Ready for highlight detection.
+            </div>
+
+        </div>
+    </div>
+
+    <a asp-controller="Create"
+       asp-action="Index"
+       class="btn btn-dark mt-4">
+        Upload Another Video
+    </a>
+
+</div>

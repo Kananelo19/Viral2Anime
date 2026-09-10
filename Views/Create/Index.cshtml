@@ -1,0 +1,56 @@
+@{
+    ViewData["Title"] = "Create Anime";
+}
+
+<div class="container mt-5" style="max-width: 760px;">
+    <h1 class="fw-bold">Create Anime</h1>
+
+    <p class="text-muted">
+        Upload a video and turn its biggest moments into an animated story.
+    </p>
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.Error
+        </div>
+    }
+
+    <form method="post" enctype="multipart/form-data" class="mt-4">
+
+        <div class="mb-4">
+            <label class="form-label">Project title</label>
+
+            <input
+                type="text"
+                name="title"
+                class="form-control"
+                placeholder="Arsenal vs Liverpool" />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Video</label>
+
+            <input
+                type="file"
+                name="video"
+                accept="video/*"
+                class="form-control"
+                required />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Output type</label>
+
+            <select name="outputType" class="form-select">
+                <option value="30 Second Short">30 Second Short</option>
+                <option value="60 Second Short">60 Second Short</option>
+                <option value="Anime Episode">Anime Episode</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-dark btn-lg w-100">
+            Upload & Analyze
+        </button>
+    </form>
+</div>
