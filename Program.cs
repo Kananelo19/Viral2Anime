@@ -5,6 +5,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<Viral2Anime.Services.VideoAnalysis.VideoMetadataService>();
 builder.Services.AddScoped<Viral2Anime.Services.VideoAnalysis.FrameExtractionService>();
 
+builder.Services.AddHttpClient<Viral2Anime.Services.VideoAnalysis.GeminiVideoAnalysisService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

@@ -4,6 +4,7 @@
     ViewData["Title"] = "Video Uploaded";
     var duration = TimeSpan.FromSeconds(Model.DurationSeconds);
     var frameUrls = ViewBag.FrameUrls as List<string> ?? new List<string>();
+    var aiAnalysis = ViewBag.AiAnalysis as string ?? "No AI analysis available.";
 }
 
 <div class="container mt-5" style="max-width: 980px;">
@@ -71,6 +72,22 @@
         </div>
     </div>
 
+    <div class="card mt-4">
+        <div class="card-body">
+
+            <h3 class="fw-bold">AI Scene Analysis</h3>
+
+            <p class="text-muted">
+                Gemini's interpretation of the uploaded video.
+            </p>
+
+            <div style="white-space: pre-wrap;">
+                @aiAnalysis
+            </div>
+
+        </div>
+    </div>
+
     @if (frameUrls.Count > 0)
     {
         <div class="mt-5">
@@ -109,7 +126,7 @@
 
     <a asp-controller="Create"
        asp-action="Index"
-       class="btn btn-dark mt-5">
+       class="btn btn-dark mt-5 mb-5">
         Upload Another Video
     </a>
 

@@ -9,15 +9,18 @@ public class CreateController : Controller
     private readonly IWebHostEnvironment _environment;
     private readonly VideoMetadataService _metadataService;
     private readonly FrameExtractionService _frameExtractionService;
+    private readonly GeminiVideoAnalysisService _geminiVideoAnalysisService;
 
     public CreateController(
         IWebHostEnvironment environment,
         VideoMetadataService metadataService,
-        FrameExtractionService frameExtractionService)
+        FrameExtractionService frameExtractionService,
+        GeminiVideoAnalysisService geminiVideoAnalysisService)
     {
         _environment = environment;
         _metadataService = metadataService;
         _frameExtractionService = frameExtractionService;
+        _geminiVideoAnalysisService = geminiVideoAnalysisService;
     }
 
     [HttpGet]
@@ -101,6 +104,19 @@ public class CreateController : Controller
                 "/" +
                 Path.GetFileName(path))
             .ToList();
+
+        try
+        {
+            ViewBag.AiAnalysis =
+                await _geminiVideoAnalysisService.AnalyzeVideoAsync(
+                    filePath,
+                    project.ContentType);
+        }
+        catch (Exception ex)
+        {
+            ViewBag.AiAnalysis =
+                $"AI analysis failed: {ex.Message}";
+        }
 
         return View("Uploaded", project);
     }
