@@ -1,6 +1,7 @@
-using System.Net.Http.Headers;
+using System.Net;
 using System.Text;
 using System.Text.Json;
+using Viral2Anime.Models.Video;
 
 namespace Viral2Anime.Services.VideoAnalysis;
 
@@ -17,7 +18,7 @@ public class GeminiVideoAnalysisService
         _configuration = configuration;
     }
 
-    public async Task<string> AnalyzeVideoAsync(
+    public async Task<VideoAnalysisResult> AnalyzeVideoAsync(
         string videoPath,
         string contentType = "Football Match")
     {
@@ -30,41 +31,59 @@ public class GeminiVideoAnalysisService
 
         var videoBytes = await File.ReadAllBytesAsync(videoPath);
         var base64Video = Convert.ToBase64String(videoBytes);
-
         var mimeType = GetMimeType(videoPath);
 
-        var prompt = $"""
-You are the video analysis engine for Viral2Anime.
+        var prompt = $$"""
+You are the video understanding engine for Viral2Anime.
 
-Analyze this uploaded video carefully.
+Analyze the uploaded video carefully.
 
 Content type:
-{contentType}
+{{contentType}}
 
-Return a concise but useful analysis containing:
+Return ONLY valid JSON.
 
-1. What is happening in the video.
-2. The important moments in chronological order.
-3. Approximate timestamps for each important moment.
-4. The most exciting or meaningful moment.
-5. A highlight score from 0 to 100.
-6. A short explanation of why that moment matters.
-7. How the scene could be transformed into a cinematic anime sequence.
+Do not include markdown.
+Do not include ```json.
+Do not include commentary before or after the JSON.
 
-For sports footage, pay attention to:
-- attacking moves
-- defending
-- shots
-- saves
-- goals
-- tackles
-- passes
-- celebrations
-- momentum changes
-- player reactions
-- crowd or sideline reactions
+Use exactly this structure:
 
-Do not invent events that are not visible.
+{
+  "summary": "short factual summary",
+  "highlightScore": 0,
+  "bestMomentDescription": "description of the strongest moment",
+  "bestMomentStartSeconds": 0.0,
+  "bestMomentEndSeconds": 0.0,
+  "animeConcept": "original cinematic anime transformation concept",
+  "moments": [
+    {
+      "startSeconds": 0.0,
+      "endSeconds": 0.0,
+      "type": "event type",
+      "description": "what visibly happens",
+      "importanceScore": 0,
+      "animeDirection": "original cinematic treatment"
+    }
+  ]
+}
+
+Rules:
+
+- highlightScore must be from 0 to 100.
+- importanceScore must be from 0 to 100.
+- Timestamps must be numeric seconds.
+- Moments must be chronological.
+- Focus on meaningful events.
+- Do not invent events that are not visible.
+- For sports, identify passes, tackles, dribbles, shots, goals,
+  saves, reactions, celebrations, momentum changes and other
+  meaningful actions when actually visible.
+- Anime directions should describe original techniques such as
+  dramatic framing, speed lines, slow motion, impact frames,
+  camera movement, lighting, energy effects and reaction shots.
+- Do not reference or imitate a named anime, manga, artist,
+  studio, franchise or copyrighted visual style.
 """;
 
         var requestBody = new
@@ -89,43 +108,124 @@ Do not invent events that are not visible.
                         }
                     }
                 }
+            },
+            generationConfig = new
+            {
+                responseMimeType = "application/json"
             }
         };
 
-        var json = JsonSerializer.Serialize(requestBody);
+        var requestJson = JsonSerializer.Serialize(requestBody);
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={apiKey}");
+        var responseJson = await SendWithRetryAsync(
+            apiKey,
+            requestJson);
 
-        request.Content = new StringContent(
-            json,
-            Encoding.UTF8,
-            "application/json");
+        using var responseDocument =
+            JsonDocument.Parse(responseJson);
 
-        var response = await _httpClient.SendAsync(request);
-
-        var responseJson = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception(
-                $"Gemini request failed: {response.StatusCode}\n{responseJson}");
-        }
-
-        using var document = JsonDocument.Parse(responseJson);
-
-        var root = document.RootElement;
-
-        var text =
-            root
+        var generatedText =
+            responseDocument.RootElement
                 .GetProperty("candidates")[0]
                 .GetProperty("content")
                 .GetProperty("parts")[0]
                 .GetProperty("text")
                 .GetString();
 
-        return text ?? "No analysis returned.";
+        if (string.IsNullOrWhiteSpace(generatedText))
+        {
+            throw new Exception(
+                "Gemini returned an empty analysis.");
+        }
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        var analysis =
+            JsonSerializer.Deserialize<VideoAnalysisResult>(
+                generatedText,
+                options);
+
+        if (analysis == null)
+        {
+            throw new Exception(
+                "Gemini analysis could not be parsed.");
+        }
+
+        analysis.HighlightScore =
+            Math.Clamp(
+                analysis.HighlightScore,
+                0,
+                100);
+
+        foreach (var moment in analysis.Moments)
+        {
+            moment.ImportanceScore =
+                Math.Clamp(
+                    moment.ImportanceScore,
+                    0,
+                    100);
+        }
+
+        return analysis;
+    }
+
+    private async Task<string> SendWithRetryAsync(
+        string apiKey,
+        string requestJson)
+    {
+        const int maxAttempts = 3;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={apiKey}");
+
+            request.Content = new StringContent(
+                requestJson,
+                Encoding.UTF8,
+                "application/json");
+
+            using var response =
+                await _httpClient.SendAsync(request);
+
+            var responseJson =
+                await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                return responseJson;
+            }
+
+            var retryable =
+                response.StatusCode == HttpStatusCode.ServiceUnavailable ||
+                response.StatusCode == HttpStatusCode.TooManyRequests ||
+                response.StatusCode == HttpStatusCode.BadGateway ||
+                response.StatusCode == HttpStatusCode.GatewayTimeout;
+
+            if (!retryable || attempt == maxAttempts)
+            {
+                throw new Exception(
+                    $"Gemini request failed after {attempt} attempt(s): " +
+                    $"{response.StatusCode}\n{responseJson}");
+            }
+
+            var delaySeconds = attempt switch
+            {
+                1 => 2,
+                2 => 4,
+                _ => 6
+            };
+
+            await Task.Delay(
+                TimeSpan.FromSeconds(delaySeconds));
+        }
+
+        throw new Exception(
+            "Gemini request failed unexpectedly.");
     }
 
     private static string GetMimeType(string path)

@@ -49,10 +49,7 @@ public class CreateController : Controller
         Directory.CreateDirectory(uploadsFolder);
 
         var extension = Path.GetExtension(video.FileName);
-
-        var storedFileName =
-            $"{Guid.NewGuid()}{extension}";
-
+        var storedFileName = $"{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(
             uploadsFolder,
             storedFileName);
@@ -95,8 +92,6 @@ public class CreateController : Controller
                 frameFolderPath,
                 3);
 
-        ViewBag.FrameCount = extractedFrames.Count;
-
         ViewBag.FrameUrls = extractedFrames
             .Select(path =>
                 "/generated/frames/" +
@@ -107,15 +102,16 @@ public class CreateController : Controller
 
         try
         {
-            ViewBag.AiAnalysis =
+            var analysis =
                 await _geminiVideoAnalysisService.AnalyzeVideoAsync(
                     filePath,
                     project.ContentType);
+
+            ViewBag.AiAnalysis = analysis;
         }
         catch (Exception ex)
         {
-            ViewBag.AiAnalysis =
-                $"AI analysis failed: {ex.Message}";
+            ViewBag.AiError = ex.Message;
         }
 
         return View("Uploaded", project);

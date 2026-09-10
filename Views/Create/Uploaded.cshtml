@@ -1,13 +1,16 @@
+@using Viral2Anime.Models.Video
 @model Viral2Anime.Models.Video.VideoProject
 
 @{
     ViewData["Title"] = "Video Uploaded";
+
     var duration = TimeSpan.FromSeconds(Model.DurationSeconds);
     var frameUrls = ViewBag.FrameUrls as List<string> ?? new List<string>();
-    var aiAnalysis = ViewBag.AiAnalysis as string ?? "No AI analysis available.";
+    var analysis = ViewBag.AiAnalysis as VideoAnalysisResult;
+    var aiError = ViewBag.AiError as string;
 }
 
-<div class="container mt-5" style="max-width: 980px;">
+<div class="container mt-5" style="max-width: 1100px;">
 
     <h1 class="fw-bold">Video Ready</h1>
 
@@ -33,7 +36,7 @@
 
             <hr />
 
-            <h5>Video Analysis</h5>
+            <h5>Video Inspection</h5>
 
             <p>
                 <strong>Duration:</strong>
@@ -60,33 +63,148 @@
                 @Model.FormatName
             </p>
 
-            <p>
-                <strong>Frames extracted:</strong>
-                @frameUrls.Count
-            </p>
-
-            <div class="alert alert-success mt-4">
-                Video inspection and frame extraction complete.
-            </div>
-
         </div>
     </div>
 
-    <div class="card mt-4">
-        <div class="card-body">
+    @if (!string.IsNullOrWhiteSpace(aiError))
+    {
+        <div class="alert alert-danger mt-4">
+            <strong>AI analysis failed:</strong>
+            @aiError
+        </div>
+    }
 
-            <h3 class="fw-bold">AI Scene Analysis</h3>
+    @if (analysis != null)
+    {
+        <div class="mt-5">
 
-            <p class="text-muted">
-                Gemini's interpretation of the uploaded video.
-            </p>
+            <h2 class="fw-bold">
+                AI Highlight Analysis
+            </h2>
 
-            <div style="white-space: pre-wrap;">
-                @aiAnalysis
+            <div class="row g-3 mt-2">
+
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+
+                            <div class="text-muted">
+                                Highlight Score
+                            </div>
+
+                            <div class="display-4 fw-bold">
+                                @analysis.HighlightScore
+                            </div>
+
+                            <div class="text-muted">
+                                / 100
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="card h-100">
+                        <div class="card-body">
+
+                            <h5>Video Summary</h5>
+
+                            <p>
+                                @analysis.Summary
+                            </p>
+
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
+            <div class="card mt-3">
+                <div class="card-body">
+
+                    <h4 class="fw-bold">
+                        Best Moment
+                    </h4>
+
+                    <p>
+                        <strong>Time:</strong>
+                        @analysis.BestMomentStartSeconds.ToString("0.0")s
+                        -
+                        @analysis.BestMomentEndSeconds.ToString("0.0")s
+                    </p>
+
+                    <p>
+                        @analysis.BestMomentDescription
+                    </p>
+
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+
+                    <h4 class="fw-bold">
+                        Anime Concept
+                    </h4>
+
+                    <p>
+                        @analysis.AnimeConcept
+                    </p>
+
+                </div>
+            </div>
+
+            @if (analysis.Moments.Count > 0)
+            {
+                <div class="mt-4">
+
+                    <h3 class="fw-bold">
+                        Highlight Timeline
+                    </h3>
+
+                    @foreach (var moment in analysis.Moments)
+                    {
+                        <div class="card mt-3">
+                            <div class="card-body">
+
+                                <div class="d-flex justify-content-between">
+                                    <h5 class="fw-bold">
+                                        @moment.Type
+                                    </h5>
+
+                                    <span class="badge bg-dark">
+                                        @moment.ImportanceScore / 100
+                                    </span>
+                                </div>
+
+                                <p class="text-muted mb-2">
+                                    @moment.StartSeconds.ToString("0.0")s
+                                    -
+                                    @moment.EndSeconds.ToString("0.0")s
+                                </p>
+
+                                <p>
+                                    @moment.Description
+                                </p>
+
+                                <hr />
+
+                                <strong>Anime Direction</strong>
+
+                                <p class="mt-2 mb-0">
+                                    @moment.AnimeDirection
+                                </p>
+
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            }
+
         </div>
-    </div>
+    }
 
     @if (frameUrls.Count > 0)
     {
@@ -95,10 +213,6 @@
             <h3 class="fw-bold">
                 Extracted Frames
             </h3>
-
-            <p class="text-muted">
-                These frames will be used for scene and highlight analysis.
-            </p>
 
             <div class="row g-3 mt-2">
 
