@@ -1,4 +1,5 @@
 @using Viral2Anime.Models.Video
+@using Viral2Anime.Models.Story
 @model Viral2Anime.Models.Video.VideoProject
 
 @{
@@ -7,6 +8,7 @@
     var duration = TimeSpan.FromSeconds(Model.DurationSeconds);
     var frameUrls = ViewBag.FrameUrls as List<string> ?? new List<string>();
     var analysis = ViewBag.AiAnalysis as VideoAnalysisResult;
+    var storyboard = ViewBag.Storyboard as AnimeStoryboard;
     var aiError = ViewBag.AiError as string;
 }
 
@@ -19,49 +21,19 @@
 
             <h4>@Model.Title</h4>
 
-            <p>
-                <strong>Original file:</strong>
-                @Model.OriginalFileName
-            </p>
-
-            <p>
-                <strong>Output:</strong>
-                @Model.OutputType
-            </p>
-
-            <p>
-                <strong>Animation style:</strong>
-                @Model.AnimationStyle
-            </p>
+            <p><strong>Original file:</strong> @Model.OriginalFileName</p>
+            <p><strong>Output:</strong> @Model.OutputType</p>
+            <p><strong>Animation style:</strong> @Model.AnimationStyle</p>
 
             <hr />
 
             <h5>Video Inspection</h5>
 
-            <p>
-                <strong>Duration:</strong>
-                @duration.ToString(@"mm\:ss")
-            </p>
-
-            <p>
-                <strong>Resolution:</strong>
-                @Model.Width × @Model.Height
-            </p>
-
-            <p>
-                <strong>FPS:</strong>
-                @Model.FramesPerSecond.ToString("0.##")
-            </p>
-
-            <p>
-                <strong>Audio:</strong>
-                @(Model.HasAudio ? "Yes" : "No")
-            </p>
-
-            <p>
-                <strong>Format:</strong>
-                @Model.FormatName
-            </p>
+            <p><strong>Duration:</strong> @duration.ToString(@"mm\:ss")</p>
+            <p><strong>Resolution:</strong> @Model.Width × @Model.Height</p>
+            <p><strong>FPS:</strong> @Model.FramesPerSecond.ToString("0.##")</p>
+            <p><strong>Audio:</strong> @(Model.HasAudio ? "Yes" : "No")</p>
+            <p><strong>Format:</strong> @Model.FormatName</p>
 
         </div>
     </div>
@@ -69,7 +41,7 @@
     @if (!string.IsNullOrWhiteSpace(aiError))
     {
         <div class="alert alert-danger mt-4">
-            <strong>AI analysis failed:</strong>
+            <strong>AI processing failed:</strong>
             @aiError
         </div>
     }
@@ -78,9 +50,7 @@
     {
         <div class="mt-5">
 
-            <h2 class="fw-bold">
-                AI Highlight Analysis
-            </h2>
+            <h2 class="fw-bold">AI Highlight Analysis</h2>
 
             <div class="row g-3 mt-2">
 
@@ -88,17 +58,13 @@
                     <div class="card h-100">
                         <div class="card-body">
 
-                            <div class="text-muted">
-                                Highlight Score
-                            </div>
+                            <div class="text-muted">Highlight Score</div>
 
                             <div class="display-4 fw-bold">
                                 @analysis.HighlightScore
                             </div>
 
-                            <div class="text-muted">
-                                / 100
-                            </div>
+                            <div class="text-muted">/ 100</div>
 
                         </div>
                     </div>
@@ -110,9 +76,7 @@
 
                             <h5>Video Summary</h5>
 
-                            <p>
-                                @analysis.Summary
-                            </p>
+                            <p>@analysis.Summary</p>
 
                         </div>
                     </div>
@@ -123,9 +87,7 @@
             <div class="card mt-3">
                 <div class="card-body">
 
-                    <h4 class="fw-bold">
-                        Best Moment
-                    </h4>
+                    <h4 class="fw-bold">Best Moment</h4>
 
                     <p>
                         <strong>Time:</strong>
@@ -134,9 +96,7 @@
                         @analysis.BestMomentEndSeconds.ToString("0.0")s
                     </p>
 
-                    <p>
-                        @analysis.BestMomentDescription
-                    </p>
+                    <p>@analysis.BestMomentDescription</p>
 
                 </div>
             </div>
@@ -144,13 +104,9 @@
             <div class="card mt-3">
                 <div class="card-body">
 
-                    <h4 class="fw-bold">
-                        Anime Concept
-                    </h4>
+                    <h4 class="fw-bold">Anime Concept</h4>
 
-                    <p>
-                        @analysis.AnimeConcept
-                    </p>
+                    <p>@analysis.AnimeConcept</p>
 
                 </div>
             </div>
@@ -159,9 +115,7 @@
             {
                 <div class="mt-4">
 
-                    <h3 class="fw-bold">
-                        Highlight Timeline
-                    </h3>
+                    <h3 class="fw-bold">Highlight Timeline</h3>
 
                     @foreach (var moment in analysis.Moments)
                     {
@@ -169,6 +123,7 @@
                             <div class="card-body">
 
                                 <div class="d-flex justify-content-between">
+
                                     <h5 class="fw-bold">
                                         @moment.Type
                                     </h5>
@@ -176,23 +131,22 @@
                                     <span class="badge bg-dark">
                                         @moment.ImportanceScore / 100
                                     </span>
+
                                 </div>
 
-                                <p class="text-muted mb-2">
+                                <p class="text-muted">
                                     @moment.StartSeconds.ToString("0.0")s
                                     -
                                     @moment.EndSeconds.ToString("0.0")s
                                 </p>
 
-                                <p>
-                                    @moment.Description
-                                </p>
+                                <p>@moment.Description</p>
 
                                 <hr />
 
                                 <strong>Anime Direction</strong>
 
-                                <p class="mt-2 mb-0">
+                                <p class="mt-2">
                                     @moment.AnimeDirection
                                 </p>
 
@@ -206,13 +160,102 @@
         </div>
     }
 
+    @if (storyboard != null)
+    {
+        <div class="mt-5">
+
+            <h2 class="fw-bold">
+                Anime Storyboard
+            </h2>
+
+            <div class="card mt-3">
+                <div class="card-body">
+
+                    <h3 class="fw-bold">
+                        @storyboard.Title
+                    </h3>
+
+                    <p>@storyboard.Concept</p>
+
+                    <p>
+                        <strong>Planned duration:</strong>
+                        @storyboard.TotalDurationSeconds.ToString("0.0") seconds
+                    </p>
+
+                    <p>
+                        <strong>Shots:</strong>
+                        @storyboard.Shots.Count
+                    </p>
+
+                </div>
+            </div>
+
+            @foreach (var shot in storyboard.Shots)
+            {
+                <div class="card mt-3">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-center">
+
+                            <h4 class="fw-bold mb-0">
+                                Shot @shot.ShotNumber — @shot.Title
+                            </h4>
+
+                            <span class="badge bg-dark">
+                                @shot.DurationSeconds.ToString("0.0")s
+                            </span>
+
+                        </div>
+
+                        <p class="text-muted mt-2">
+                            Source timeline:
+                            @shot.StartSeconds.ToString("0.0")s
+                            -
+                            @shot.EndSeconds.ToString("0.0")s
+                        </p>
+
+                        <hr />
+
+                        <h6 class="fw-bold">Character Action</h6>
+
+                        <p>@shot.CharacterAction</p>
+
+                        <h6 class="fw-bold">Camera Direction</h6>
+
+                        <p>@shot.CameraDirection</p>
+
+                        <h6 class="fw-bold">Scene</h6>
+
+                        <p>@shot.SceneDescription</p>
+
+                        <h6 class="fw-bold">Visual Effects</h6>
+
+                        <p>@shot.VisualEffects</p>
+
+                        <div class="bg-light border rounded p-3 mt-3">
+
+                            <strong>Generation Prompt</strong>
+
+                            <p class="mt-2 mb-0">
+                                @shot.GenerationPrompt
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+
     @if (frameUrls.Count > 0)
     {
         <div class="mt-5">
 
-            <h3 class="fw-bold">
-                Extracted Frames
-            </h3>
+            <h3 class="fw-bold">Extracted Frames</h3>
 
             <div class="row g-3 mt-2">
 

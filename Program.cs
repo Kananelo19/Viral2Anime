@@ -6,6 +6,7 @@ builder.Services.AddScoped<Viral2Anime.Services.VideoAnalysis.VideoMetadataServi
 builder.Services.AddScoped<Viral2Anime.Services.VideoAnalysis.FrameExtractionService>();
 
 builder.Services.AddHttpClient<Viral2Anime.Services.VideoAnalysis.GeminiVideoAnalysisService>();
+builder.Services.AddHttpClient<Viral2Anime.Services.StoryGeneration.AnimeStoryboardService>();
 
 var app = builder.Build();
 

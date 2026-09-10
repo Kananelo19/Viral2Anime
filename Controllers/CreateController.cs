@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Viral2Anime.Models.Video;
+using Viral2Anime.Services.StoryGeneration;
 using Viral2Anime.Services.VideoAnalysis;
 
 namespace Viral2Anime.Controllers;
@@ -10,17 +11,20 @@ public class CreateController : Controller
     private readonly VideoMetadataService _metadataService;
     private readonly FrameExtractionService _frameExtractionService;
     private readonly GeminiVideoAnalysisService _geminiVideoAnalysisService;
+    private readonly AnimeStoryboardService _animeStoryboardService;
 
     public CreateController(
         IWebHostEnvironment environment,
         VideoMetadataService metadataService,
         FrameExtractionService frameExtractionService,
-        GeminiVideoAnalysisService geminiVideoAnalysisService)
+        GeminiVideoAnalysisService geminiVideoAnalysisService,
+        AnimeStoryboardService animeStoryboardService)
     {
         _environment = environment;
         _metadataService = metadataService;
         _frameExtractionService = frameExtractionService;
         _geminiVideoAnalysisService = geminiVideoAnalysisService;
+        _animeStoryboardService = animeStoryboardService;
     }
 
     [HttpGet]
@@ -108,6 +112,14 @@ public class CreateController : Controller
                     project.ContentType);
 
             ViewBag.AiAnalysis = analysis;
+
+            var storyboard =
+                await _animeStoryboardService.GenerateStoryboardAsync(
+                    analysis,
+                    project.OutputType,
+                    project.AnimationStyle);
+
+            ViewBag.Storyboard = storyboard;
         }
         catch (Exception ex)
         {
