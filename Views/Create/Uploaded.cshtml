@@ -3,9 +3,10 @@
 @{
     ViewData["Title"] = "Video Uploaded";
     var duration = TimeSpan.FromSeconds(Model.DurationSeconds);
+    var frameUrls = ViewBag.FrameUrls as List<string> ?? new List<string>();
 }
 
-<div class="container mt-5" style="max-width: 760px;">
+<div class="container mt-5" style="max-width: 980px;">
 
     <h1 class="fw-bold">Video Ready</h1>
 
@@ -58,16 +59,57 @@
                 @Model.FormatName
             </p>
 
+            <p>
+                <strong>Frames extracted:</strong>
+                @frameUrls.Count
+            </p>
+
             <div class="alert alert-success mt-4">
-                Video inspection complete. Ready for highlight detection.
+                Video inspection and frame extraction complete.
             </div>
 
         </div>
     </div>
 
+    @if (frameUrls.Count > 0)
+    {
+        <div class="mt-5">
+
+            <h3 class="fw-bold">
+                Extracted Frames
+            </h3>
+
+            <p class="text-muted">
+                These frames will be used for scene and highlight analysis.
+            </p>
+
+            <div class="row g-3 mt-2">
+
+                @foreach (var frameUrl in frameUrls)
+                {
+                    <div class="col-md-4">
+
+                        <div class="card h-100">
+
+                            <img
+                                src="@frameUrl"
+                                class="card-img-top"
+                                alt="Extracted video frame"
+                                style="height: 190px; object-fit: cover;" />
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    }
+
     <a asp-controller="Create"
        asp-action="Index"
-       class="btn btn-dark mt-4">
+       class="btn btn-dark mt-5">
         Upload Another Video
     </a>
 

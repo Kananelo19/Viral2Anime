@@ -8,13 +8,16 @@ public class CreateController : Controller
 {
     private readonly IWebHostEnvironment _environment;
     private readonly VideoMetadataService _metadataService;
+    private readonly FrameExtractionService _frameExtractionService;
 
     public CreateController(
         IWebHostEnvironment environment,
-        VideoMetadataService metadataService)
+        VideoMetadataService metadataService,
+        FrameExtractionService frameExtractionService)
     {
         _environment = environment;
         _metadataService = metadataService;
+        _frameExtractionService = frameExtractionService;
     }
 
     [HttpGet]
@@ -74,6 +77,30 @@ public class CreateController : Controller
         await _metadataService.PopulateMetadataAsync(
             project,
             filePath);
+
+        var frameFolderName = project.Id.ToString();
+
+        var frameFolderPath = Path.Combine(
+            _environment.WebRootPath,
+            "generated",
+            "frames",
+            frameFolderName);
+
+        var extractedFrames =
+            await _frameExtractionService.ExtractFramesAsync(
+                filePath,
+                frameFolderPath,
+                3);
+
+        ViewBag.FrameCount = extractedFrames.Count;
+
+        ViewBag.FrameUrls = extractedFrames
+            .Select(path =>
+                "/generated/frames/" +
+                frameFolderName +
+                "/" +
+                Path.GetFileName(path))
+            .ToList();
 
         return View("Uploaded", project);
     }
