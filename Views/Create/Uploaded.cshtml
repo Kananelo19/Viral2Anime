@@ -6,10 +6,26 @@
     ViewData["Title"] = "Video Uploaded";
 
     var duration = TimeSpan.FromSeconds(Model.DurationSeconds);
-    var frameUrls = ViewBag.FrameUrls as List<string> ?? new List<string>();
-    var analysis = ViewBag.AiAnalysis as VideoAnalysisResult;
-    var storyboard = ViewBag.Storyboard as AnimeStoryboard;
-    var aiError = ViewBag.AiError as string;
+
+    var frameUrls =
+        ViewBag.FrameUrls as List<string>
+        ?? new List<string>();
+
+    var analysis =
+        ViewBag.AiAnalysis as VideoAnalysisResult;
+
+    var storyboard =
+        ViewBag.Storyboard as AnimeStoryboard;
+
+    var referenceFrames =
+        ViewBag.ReferenceFrames as List<StoryboardReferenceFrame>
+        ?? new List<StoryboardReferenceFrame>();
+
+    var animeKeyframe =
+        ViewBag.AnimeKeyframe as AnimeKeyframe;
+
+    var aiError =
+        ViewBag.AiError as string;
 }
 
 <div class="container mt-5" style="max-width: 1100px;">
@@ -21,19 +37,49 @@
 
             <h4>@Model.Title</h4>
 
-            <p><strong>Original file:</strong> @Model.OriginalFileName</p>
-            <p><strong>Output:</strong> @Model.OutputType</p>
-            <p><strong>Animation style:</strong> @Model.AnimationStyle</p>
+            <p>
+                <strong>Original file:</strong>
+                @Model.OriginalFileName
+            </p>
+
+            <p>
+                <strong>Output:</strong>
+                @Model.OutputType
+            </p>
+
+            <p>
+                <strong>Animation style:</strong>
+                @Model.AnimationStyle
+            </p>
 
             <hr />
 
             <h5>Video Inspection</h5>
 
-            <p><strong>Duration:</strong> @duration.ToString(@"mm\:ss")</p>
-            <p><strong>Resolution:</strong> @Model.Width × @Model.Height</p>
-            <p><strong>FPS:</strong> @Model.FramesPerSecond.ToString("0.##")</p>
-            <p><strong>Audio:</strong> @(Model.HasAudio ? "Yes" : "No")</p>
-            <p><strong>Format:</strong> @Model.FormatName</p>
+            <p>
+                <strong>Duration:</strong>
+                @duration.ToString(@"mm\:ss")
+            </p>
+
+            <p>
+                <strong>Resolution:</strong>
+                @Model.Width × @Model.Height
+            </p>
+
+            <p>
+                <strong>FPS:</strong>
+                @Model.FramesPerSecond.ToString("0.##")
+            </p>
+
+            <p>
+                <strong>Audio:</strong>
+                @(Model.HasAudio ? "Yes" : "No")
+            </p>
+
+            <p>
+                <strong>Format:</strong>
+                @Model.FormatName
+            </p>
 
         </div>
     </div>
@@ -41,250 +87,318 @@
     @if (!string.IsNullOrWhiteSpace(aiError))
     {
         <div class="alert alert-danger mt-4">
-            <strong>AI processing failed:</strong>
-            @aiError
+            <strong>AI processing error:</strong>
+            <pre class="mt-2 mb-0"
+                 style="white-space: pre-wrap;">@aiError</pre>
         </div>
     }
 
     @if (analysis != null)
     {
-        <div class="mt-5">
+        <h2 class="fw-bold mt-5">
+            AI Highlight Analysis
+        </h2>
 
-            <h2 class="fw-bold">AI Highlight Analysis</h2>
+        <div class="card mt-3">
+            <div class="card-body">
 
-            <div class="row g-3 mt-2">
+                <div class="d-flex justify-content-between align-items-center">
 
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <h4 class="mb-0">
+                        Highlight Score
+                    </h4>
 
-                            <div class="text-muted">Highlight Score</div>
+                    <span class="badge bg-dark fs-5">
+                        @analysis.HighlightScore / 100
+                    </span>
 
-                            <div class="display-4 fw-bold">
-                                @analysis.HighlightScore
-                            </div>
-
-                            <div class="text-muted">/ 100</div>
-
-                        </div>
-                    </div>
                 </div>
 
-                <div class="col-md-8">
-                    <div class="card h-100">
-                        <div class="card-body">
+                <hr />
 
-                            <h5>Video Summary</h5>
+                <h5>Summary</h5>
 
-                            <p>@analysis.Summary</p>
+                <p>
+                    @analysis.Summary
+                </p>
 
-                        </div>
-                    </div>
-                </div>
+                <h5>Best Moment</h5>
 
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-body">
-
-                    <h4 class="fw-bold">Best Moment</h4>
-
-                    <p>
-                        <strong>Time:</strong>
+                <p>
+                    <strong>
                         @analysis.BestMomentStartSeconds.ToString("0.0")s
-                        -
+                        →
                         @analysis.BestMomentEndSeconds.ToString("0.0")s
-                    </p>
+                    </strong>
+                </p>
 
-                    <p>@analysis.BestMomentDescription</p>
+                <p>
+                    @analysis.BestMomentDescription
+                </p>
 
-                </div>
+                <h5>Anime Concept</h5>
+
+                <p class="mb-0">
+                    @analysis.AnimeConcept
+                </p>
+
             </div>
-
-            <div class="card mt-3">
-                <div class="card-body">
-
-                    <h4 class="fw-bold">Anime Concept</h4>
-
-                    <p>@analysis.AnimeConcept</p>
-
-                </div>
-            </div>
-
-            @if (analysis.Moments.Count > 0)
-            {
-                <div class="mt-4">
-
-                    <h3 class="fw-bold">Highlight Timeline</h3>
-
-                    @foreach (var moment in analysis.Moments)
-                    {
-                        <div class="card mt-3">
-                            <div class="card-body">
-
-                                <div class="d-flex justify-content-between">
-
-                                    <h5 class="fw-bold">
-                                        @moment.Type
-                                    </h5>
-
-                                    <span class="badge bg-dark">
-                                        @moment.ImportanceScore / 100
-                                    </span>
-
-                                </div>
-
-                                <p class="text-muted">
-                                    @moment.StartSeconds.ToString("0.0")s
-                                    -
-                                    @moment.EndSeconds.ToString("0.0")s
-                                </p>
-
-                                <p>@moment.Description</p>
-
-                                <hr />
-
-                                <strong>Anime Direction</strong>
-
-                                <p class="mt-2">
-                                    @moment.AnimeDirection
-                                </p>
-
-                            </div>
-                        </div>
-                    }
-
-                </div>
-            }
-
         </div>
-    }
 
-    @if (storyboard != null)
-    {
-        <div class="mt-5">
+        @if (analysis.Moments.Count > 0)
+        {
+            <h3 class="fw-bold mt-4">
+                Highlight Timeline
+            </h3>
 
-            <h2 class="fw-bold">
-                Anime Storyboard
-            </h2>
-
-            <div class="card mt-3">
-                <div class="card-body">
-
-                    <h3 class="fw-bold">
-                        @storyboard.Title
-                    </h3>
-
-                    <p>@storyboard.Concept</p>
-
-                    <p>
-                        <strong>Planned duration:</strong>
-                        @storyboard.TotalDurationSeconds.ToString("0.0") seconds
-                    </p>
-
-                    <p>
-                        <strong>Shots:</strong>
-                        @storyboard.Shots.Count
-                    </p>
-
-                </div>
-            </div>
-
-            @foreach (var shot in storyboard.Shots)
+            @foreach (var moment in analysis.Moments)
             {
                 <div class="card mt-3">
-
                     <div class="card-body">
 
                         <div class="d-flex justify-content-between align-items-center">
 
-                            <h4 class="fw-bold mb-0">
-                                Shot @shot.ShotNumber — @shot.Title
-                            </h4>
+                            <h5 class="mb-0">
+                                @moment.Type
+                            </h5>
 
                             <span class="badge bg-dark">
-                                @shot.DurationSeconds.ToString("0.0")s
+                                @moment.ImportanceScore / 100
                             </span>
 
                         </div>
 
                         <p class="text-muted mt-2">
-                            Source timeline:
-                            @shot.StartSeconds.ToString("0.0")s
-                            -
-                            @shot.EndSeconds.ToString("0.0")s
+                            @moment.StartSeconds.ToString("0.0")s
+                            →
+                            @moment.EndSeconds.ToString("0.0")s
                         </p>
 
-                        <hr />
+                        <p>
+                            @moment.Description
+                        </p>
 
-                        <h6 class="fw-bold">Character Action</h6>
+                        <div class="border rounded p-3 bg-light">
 
-                        <p>@shot.CharacterAction</p>
+                            <strong>
+                                Anime Direction
+                            </strong>
 
-                        <h6 class="fw-bold">Camera Direction</h6>
-
-                        <p>@shot.CameraDirection</p>
-
-                        <h6 class="fw-bold">Scene</h6>
-
-                        <p>@shot.SceneDescription</p>
-
-                        <h6 class="fw-bold">Visual Effects</h6>
-
-                        <p>@shot.VisualEffects</p>
-
-                        <div class="bg-light border rounded p-3 mt-3">
-
-                            <strong>Generation Prompt</strong>
-
-                            <p class="mt-2 mb-0">
-                                @shot.GenerationPrompt
+                            <p class="mb-0 mt-2">
+                                @moment.AnimeDirection
                             </p>
 
                         </div>
 
                     </div>
+                </div>
+            }
+        }
+    }
+
+    @if (storyboard != null)
+    {
+        <h2 class="fw-bold mt-5">
+            Anime Storyboard
+        </h2>
+
+        <div class="card mt-3">
+            <div class="card-body">
+
+                <h3>
+                    @storyboard.Title
+                </h3>
+
+                <p>
+                    @storyboard.Concept
+                </p>
+
+                <p>
+                    <strong>Planned duration:</strong>
+                    @storyboard.TotalDurationSeconds.ToString("0.0")
+                    seconds
+                </p>
+
+                <p class="mb-0">
+                    <strong>Shots:</strong>
+                    @storyboard.Shots.Count
+                </p>
+
+            </div>
+        </div>
+
+        @foreach (var shot in storyboard.Shots)
+        {
+            var referenceFrame =
+                referenceFrames.FirstOrDefault(
+                    r => r.ShotNumber == shot.ShotNumber);
+
+            <div class="card mt-3">
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <h3 class="mb-0">
+                            Shot @shot.ShotNumber —
+                            @shot.Title
+                        </h3>
+
+                        <span class="badge bg-dark">
+                            @shot.DurationSeconds.ToString("0.0")s
+                        </span>
+
+                    </div>
+
+                    <div class="mt-3 mb-3">
+
+                        <p class="mb-1">
+                            <strong>Source Video:</strong>
+                            @shot.SourceStartSeconds.ToString("0.0")s
+                            →
+                            @shot.SourceEndSeconds.ToString("0.0")s
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>Anime Output:</strong>
+                            @shot.OutputStartSeconds.ToString("0.0")s
+                            →
+                            @shot.OutputEndSeconds.ToString("0.0")s
+                        </p>
+
+                        <p class="text-muted mb-0">
+                            Reference moment:
+                            @shot.ReferenceFrameSeconds.ToString("0.0")s
+                        </p>
+
+                    </div>
+
+                    @if (referenceFrame != null)
+                    {
+                        <h5 class="fw-bold mt-3">
+                            Source Reference Frame
+                        </h5>
+
+                        <img
+                            src="@referenceFrame.FrameUrl"
+                            alt="Source reference frame"
+                            class="img-fluid rounded border"
+                            style="max-width: 540px; width: 100%;" />
+
+                        <p class="text-muted mt-2">
+                            Matched near
+                            @referenceFrame.TargetSeconds.ToString("0.0")s
+                        </p>
+                    }
+
+                    <hr />
+
+                    <h5>Character Action</h5>
+                    <p>@shot.CharacterAction</p>
+
+                    <h5>Camera Direction</h5>
+                    <p>@shot.CameraDirection</p>
+
+                    <h5>Scene</h5>
+                    <p>@shot.SceneDescription</p>
+
+                    <h5>Visual Effects</h5>
+                    <p>@shot.VisualEffects</p>
+
+                    <div class="border rounded p-3 bg-light">
+
+                        <strong>
+                            Generation Prompt
+                        </strong>
+
+                        <p class="mb-0 mt-2">
+                            @shot.GenerationPrompt
+                        </p>
+
+                    </div>
+
+                </div>
+            </div>
+        }
+    }
+
+    @if (animeKeyframe != null &&
+         animeKeyframe.GeneratedSuccessfully)
+    {
+        <h2 class="fw-bold mt-5">
+            Anime Keyframe Test
+        </h2>
+
+        <div class="card mt-3">
+            <div class="card-body">
+
+                <h3>
+                    Shot @animeKeyframe.ShotNumber —
+                    @animeKeyframe.Title
+                </h3>
+
+                <p class="text-muted">
+                    Comparing the real source frame with
+                    Viral2Anime's generated anime keyframe.
+                </p>
+
+                <div class="row g-4 mt-2">
+
+                    <div class="col-md-6">
+
+                        <h5 class="fw-bold">
+                            Original Reference
+                        </h5>
+
+                        <img
+                            src="@animeKeyframe.SourceFrameUrl"
+                            alt="Original reference frame"
+                            class="img-fluid rounded border"
+                            style="width: 100%;" />
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <h5 class="fw-bold">
+                            Generated Anime
+                        </h5>
+
+                        <img
+                            src="@animeKeyframe.GeneratedImageUrl"
+                            alt="Generated anime keyframe"
+                            class="img-fluid rounded border"
+                            style="width: 100%;" />
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    }
+
+    @if (frameUrls.Count > 0)
+    {
+        <h2 class="fw-bold mt-5">
+            Extracted Frames
+        </h2>
+
+        <div class="row g-3 mt-2 mb-5">
+
+            @foreach (var frameUrl in frameUrls)
+            {
+                <div class="col-md-4">
+
+                    <img
+                        src="@frameUrl"
+                        alt="Extracted video frame"
+                        class="img-fluid rounded border"
+                        style="width: 100%;" />
 
                 </div>
             }
 
         </div>
     }
-
-    @if (frameUrls.Count > 0)
-    {
-        <div class="mt-5">
-
-            <h3 class="fw-bold">Extracted Frames</h3>
-
-            <div class="row g-3 mt-2">
-
-                @foreach (var frameUrl in frameUrls)
-                {
-                    <div class="col-md-4">
-
-                        <div class="card h-100">
-
-                            <img
-                                src="@frameUrl"
-                                class="card-img-top"
-                                alt="Extracted video frame"
-                                style="height: 190px; object-fit: cover;" />
-
-                        </div>
-
-                    </div>
-                }
-
-            </div>
-
-        </div>
-    }
-
-    <a asp-controller="Create"
-       asp-action="Index"
-       class="btn btn-dark mt-5 mb-5">
-        Upload Another Video
-    </a>
 
 </div>

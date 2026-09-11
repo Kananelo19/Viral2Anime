@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Viral2Anime.Models.Video;
+using Viral2Anime.Services.Animation;
 using Viral2Anime.Services.StoryGeneration;
 using Viral2Anime.Services.VideoAnalysis;
 
@@ -12,19 +13,25 @@ public class CreateController : Controller
     private readonly FrameExtractionService _frameExtractionService;
     private readonly GeminiVideoAnalysisService _geminiVideoAnalysisService;
     private readonly AnimeStoryboardService _animeStoryboardService;
+    private readonly ReferenceFrameService _referenceFrameService;
+    private readonly AnimeKeyframeService _animeKeyframeService;
 
     public CreateController(
         IWebHostEnvironment environment,
         VideoMetadataService metadataService,
         FrameExtractionService frameExtractionService,
         GeminiVideoAnalysisService geminiVideoAnalysisService,
-        AnimeStoryboardService animeStoryboardService)
+        AnimeStoryboardService animeStoryboardService,
+        ReferenceFrameService referenceFrameService,
+        AnimeKeyframeService animeKeyframeService)
     {
         _environment = environment;
         _metadataService = metadataService;
         _frameExtractionService = frameExtractionService;
         _geminiVideoAnalysisService = geminiVideoAnalysisService;
         _animeStoryboardService = animeStoryboardService;
+        _referenceFrameService = referenceFrameService;
+        _animeKeyframeService = animeKeyframeService;
     }
 
     [HttpGet]
@@ -54,6 +61,7 @@ public class CreateController : Controller
 
         var extension = Path.GetExtension(video.FileName);
         var storedFileName = $"{Guid.NewGuid()}{extension}";
+
         var filePath = Path.Combine(
             uploadsFolder,
             storedFileName);
@@ -82,7 +90,8 @@ public class CreateController : Controller
             project,
             filePath);
 
-        var frameFolderName = project.Id.ToString();
+        var frameFolderName =
+            project.Id.ToString();
 
         var frameFolderPath = Path.Combine(
             _environment.WebRootPath,
@@ -96,36 +105,107 @@ public class CreateController : Controller
                 frameFolderPath,
                 3);
 
-        ViewBag.FrameUrls = extractedFrames
-            .Select(path =>
-                "/generated/frames/" +
-                frameFolderName +
-                "/" +
-                Path.GetFileName(path))
-            .ToList();
+        ViewBag.FrameUrls =
+            extractedFrames
+                .Select(path =>
+                    "/generated/frames/" +
+                    frameFolderName +
+                    "/" +
+                    Path.GetFileName(path))
+                .ToList();
 
         try
         {
             var analysis =
-                await _geminiVideoAnalysisService.AnalyzeVideoAsync(
-                    filePath,
-                    project.ContentType);
+                await _geminiVideoAnalysisService
+                    .AnalyzeVideoAsync(
+                        filePath,
+                        project.ContentType);
 
             ViewBag.AiAnalysis = analysis;
 
             var storyboard =
-                await _animeStoryboardService.GenerateStoryboardAsync(
-                    analysis,
-                    project.OutputType,
-                    project.AnimationStyle);
+                await _animeStoryboardService
+                    .GenerateStoryboardAsync(
+                        analysis,
+                        project.OutputType,
+                        project.AnimationStyle);
 
             ViewBag.Storyboard = storyboard;
+
+            var referenceFrames =
+                _referenceFrameService.MatchFrames(
+                    storyboard,
+                    extractedFrames,
+                    frameFolderName);
+
+            ViewBag.ReferenceFrames =
+                referenceFrames;
+
+            // TEST PHASE:
+            // Generate only the strongest/climax shot.
+            var climaxShot =
+                storyboard.Shots
+                    .OrderByDescending(
+                        shot => shot.OutputStartSeconds)
+                    .Skip(1)
+                    .FirstOrDefault();
+
+            if (climaxShot == null)
+            {
+                climaxShot =
+                    storyboard.Shots
+                        .OrderByDescending(
+                            shot => shot.DurationSeconds)
+                        .FirstOrDefault();
+            }
+
+            if (climaxShot != null)
+            {
+                var referenceFrame =
+                    referenceFrames.FirstOrDefault(
+                        frame =>
+                            frame.ShotNumber ==
+                            climaxShot.ShotNumber);
+
+                if (referenceFrame != null)
+                {
+                    var keyframeFolderName =
+                        project.Id.ToString();
+
+                    var keyframeFolderPath =
+                        Path.Combine(
+                            _environment.WebRootPath,
+                            "generated",
+                            "keyframes",
+                            keyframeFolderName);
+
+                    var keyframe =
+                        await _animeKeyframeService
+                            .GenerateKeyframeAsync(
+                                climaxShot,
+                                referenceFrame,
+                                keyframeFolderPath);
+
+                    keyframe.GeneratedImageUrl =
+                        "/generated/keyframes/" +
+                        keyframeFolderName +
+                        "/" +
+                        Path.GetFileName(
+                            keyframe.GeneratedImagePath);
+
+                    ViewBag.AnimeKeyframe =
+                        keyframe;
+                }
+            }
         }
         catch (Exception ex)
         {
             ViewBag.AiError = ex.Message;
         }
 
-        return View("Uploaded", project);
+        return View(
+            "Uploaded",
+            project);
     }
 }

@@ -30,6 +30,11 @@ public class AnimeStoryboardService
             throw new Exception("Gemini API key is missing.");
         }
 
+        var sourceDuration =
+            analysis.Moments.Count > 0
+                ? analysis.Moments.Max(m => m.EndSeconds)
+                : analysis.BestMomentEndSeconds;
+
         var analysisJson = JsonSerializer.Serialize(
             analysis,
             new JsonSerializerOptions
@@ -40,14 +45,17 @@ public class AnimeStoryboardService
         var prompt = $$"""
 You are the storyboard generation engine for Viral2Anime.
 
-Your job is to transform a factual video highlight analysis
-into an ORIGINAL cinematic anime storyboard.
+Transform the factual source-video analysis into an ORIGINAL
+cinematic anime storyboard.
 
 Output type:
 {{outputType}}
 
 Animation style:
 {{animationStyle}}
+
+Approximate source-video duration:
+{{sourceDuration}} seconds
 
 Video analysis:
 {{analysisJson}}
@@ -68,9 +76,15 @@ Use exactly this structure:
     {
       "shotNumber": 1,
       "title": "shot title",
-      "startSeconds": 0.0,
-      "endSeconds": 0.0,
+
+      "sourceStartSeconds": 0.0,
+      "sourceEndSeconds": 0.0,
+      "referenceFrameSeconds": 0.0,
+
+      "outputStartSeconds": 0.0,
+      "outputEndSeconds": 0.0,
       "durationSeconds": 0.0,
+
       "cameraDirection": "camera instructions",
       "sceneDescription": "what the scene visually contains",
       "visualEffects": "visual treatment",
@@ -80,27 +94,49 @@ Use exactly this structure:
   ]
 }
 
-Rules:
+CRITICAL TIMELINE RULES:
+
+- sourceStartSeconds and sourceEndSeconds refer ONLY to the
+  ORIGINAL uploaded source video.
+- sourceStartSeconds and sourceEndSeconds MUST remain inside
+  the actual source-video timeline.
+- Never create source timestamps beyond the source video.
+- referenceFrameSeconds must fall between sourceStartSeconds
+  and sourceEndSeconds.
+- referenceFrameSeconds should represent the most visually
+  useful source frame for that anime shot.
+
+- outputStartSeconds and outputEndSeconds refer to the NEW
+  anime video's timeline.
+- The output timeline may be longer than the source timeline.
+- It is acceptable to expand a short real-world action into
+  several seconds of dramatic anime presentation.
+- durationSeconds must equal:
+  outputEndSeconds - outputStartSeconds.
+
+CONTENT RULES:
 
 - Create a clear beginning, build-up, climax and reaction.
-- Focus heavily on the strongest highlight.
-- Keep shots chronological.
-- Use the source events as factual grounding.
-- Do not invent a goal if the source says the shot missed.
-- Do not invent players, teams or actions not supported by the analysis.
-- You may dramatize presentation, camera movement, lighting,
-  energy effects and timing.
-- Make the sequence feel exciting and cinematic.
-- Each generationPrompt must work as a standalone visual prompt.
-- Preserve continuity between shots.
-- Describe clothing, field position, ball position and action
-  consistently when possible.
+- Focus heavily on the strongest real highlight.
+- Keep events grounded in the factual video analysis.
+- Do not invent goals, saves, collisions or actions that the
+  analysis does not support.
+- If the shot missed, preserve the miss.
+- Preserve visible team/player details when known.
+- Do not invent jersey colors when the analysis does not
+  establish them.
+- When visual appearance is uncertain, tell the image
+  generator to preserve appearance from the source
+  reference frame instead of guessing.
+- Generation prompts should explicitly say to preserve
+  clothing colors, player placement and environment from
+  the supplied source reference image.
+- You may dramatize framing, lighting, timing, camera
+  movement, motion, energy effects and reactions.
+- Maintain continuity between shots.
 - Use original anime-inspired cinematic language.
-- Do not name or imitate any existing anime, manga, artist,
-  studio, franchise or copyrighted visual style.
-- Use speed lines, impact frames, dramatic perspective,
-  atmospheric lighting, motion blur, energy trails,
-  reaction shots and slow motion where appropriate.
+- Do not name or imitate an existing anime, manga, artist,
+  studio or franchise.
 """;
 
         var requestBody = new
@@ -124,11 +160,13 @@ Rules:
             }
         };
 
-        var requestJson = JsonSerializer.Serialize(requestBody);
+        var requestJson =
+            JsonSerializer.Serialize(requestBody);
 
-        var responseJson = await SendWithRetryAsync(
-            apiKey,
-            requestJson);
+        var responseJson =
+            await SendWithRetryAsync(
+                apiKey,
+                requestJson);
 
         using var responseDocument =
             JsonDocument.Parse(responseJson);
@@ -168,6 +206,27 @@ Rules:
                 .OrderBy(s => s.ShotNumber)
                 .ToList();
 
+        foreach (var shot in storyboard.Shots)
+        {
+            shot.SourceStartSeconds =
+                Math.Clamp(
+                    shot.SourceStartSeconds,
+                    0,
+                    sourceDuration);
+
+            shot.SourceEndSeconds =
+                Math.Clamp(
+                    shot.SourceEndSeconds,
+                    shot.SourceStartSeconds,
+                    sourceDuration);
+
+            shot.ReferenceFrameSeconds =
+                Math.Clamp(
+                    shot.ReferenceFrameSeconds,
+                    shot.SourceStartSeconds,
+                    shot.SourceEndSeconds);
+        }
+
         return storyboard;
     }
 
@@ -177,16 +236,20 @@ Rules:
     {
         const int maxAttempts = 3;
 
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        for (var attempt = 1;
+             attempt <= maxAttempts;
+             attempt++)
         {
-            using var request = new HttpRequestMessage(
-                HttpMethod.Post,
-                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={apiKey}");
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={apiKey}");
 
-            request.Content = new StringContent(
-                requestJson,
-                Encoding.UTF8,
-                "application/json");
+            request.Content =
+                new StringContent(
+                    requestJson,
+                    Encoding.UTF8,
+                    "application/json");
 
             using var response =
                 await _httpClient.SendAsync(request);
@@ -200,19 +263,25 @@ Rules:
             }
 
             var retryable =
-                response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                response.StatusCode == System.Net.HttpStatusCode.TooManyRequests ||
-                response.StatusCode == System.Net.HttpStatusCode.BadGateway ||
-                response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout;
+                response.StatusCode ==
+                    System.Net.HttpStatusCode.ServiceUnavailable ||
+                response.StatusCode ==
+                    System.Net.HttpStatusCode.TooManyRequests ||
+                response.StatusCode ==
+                    System.Net.HttpStatusCode.BadGateway ||
+                response.StatusCode ==
+                    System.Net.HttpStatusCode.GatewayTimeout;
 
-            if (!retryable || attempt == maxAttempts)
+            if (!retryable ||
+                attempt == maxAttempts)
             {
                 throw new Exception(
                     $"Storyboard request failed after {attempt} attempt(s): " +
                     $"{response.StatusCode}\n{responseJson}");
             }
 
-            var delaySeconds = attempt == 1 ? 2 : 4;
+            var delaySeconds =
+                attempt == 1 ? 2 : 4;
 
             await Task.Delay(
                 TimeSpan.FromSeconds(delaySeconds));

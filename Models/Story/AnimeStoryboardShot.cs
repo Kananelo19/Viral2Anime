@@ -6,9 +6,17 @@ public class AnimeStoryboardShot
 
     public string Title { get; set; } = string.Empty;
 
-    public double StartSeconds { get; set; }
+    // Original uploaded video timeline
+    public double SourceStartSeconds { get; set; }
 
-    public double EndSeconds { get; set; }
+    public double SourceEndSeconds { get; set; }
+
+    public double ReferenceFrameSeconds { get; set; }
+
+    // Final anime video timeline
+    public double OutputStartSeconds { get; set; }
+
+    public double OutputEndSeconds { get; set; }
 
     public double DurationSeconds { get; set; }
 
