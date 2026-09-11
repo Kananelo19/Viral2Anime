@@ -65,11 +65,7 @@ public class CreateController : Controller
     public async Task<IActionResult> Index(
         IFormFile video,
         string title,
-        string outputType,
-        string aspectRatio,
-        string outputResolution,
-        int targetDurationSeconds,
-        string audioMode)
+        string outputType)
     {
         if (video == null || video.Length == 0)
         {
@@ -98,52 +94,16 @@ public class CreateController : Controller
 
         var project = new VideoProject
         {
-            Title =
-                string.IsNullOrWhiteSpace(title)
-                    ? Path.GetFileNameWithoutExtension(
-                        video.FileName)
-                    : title,
+            Title = string.IsNullOrWhiteSpace(title)
+                ? Path.GetFileNameWithoutExtension(video.FileName)
+                : title,
 
-            OriginalFileName =
-                video.FileName,
+            OriginalFileName = video.FileName,
+            StoredFileName = storedFileName,
 
-            StoredFileName =
-                storedFileName,
-
-            OutputType =
-                string.IsNullOrWhiteSpace(outputType)
-                    ? "30 Second Short"
-                    : outputType,
-
-            AspectRatio =
-                aspectRatio is
-                    "9:16" or
-                    "16:9" or
-                    "1:1"
-                        ? aspectRatio
-                        : "9:16",
-
-            OutputResolution =
-                outputResolution is
-                    "1080x1920" or
-                    "1920x1080" or
-                    "1080x1080" or
-                    "720x1280" or
-                    "1280x720"
-                        ? outputResolution
-                        : "1080x1920",
-
-            TargetDurationSeconds =
-                targetDurationSeconds is
-                    30 or 60 or 90 or 180
-                        ? targetDurationSeconds
-                        : 30
-,
-
-            AudioMode =
-                audioMode == "Original Audio"
-                    ? "Original Audio"
-                    : "Mute"
+            OutputType = string.IsNullOrWhiteSpace(outputType)
+                ? "30 Second Short"
+                : outputType
         };
 
         await _metadataService.PopulateMetadataAsync(
@@ -240,18 +200,6 @@ public class CreateController : Controller
                         project.OutputType,
                     AnimationStyle =
                         project.AnimationStyle,
-
-                    AudioMode =
-                        project.AudioMode,
-
-                    AspectRatio =
-                        project.AspectRatio,
-
-                    OutputResolution =
-                        project.OutputResolution,
-
-                    TargetDurationSeconds =
-                        project.TargetDurationSeconds,
                     DurationSeconds =
                         project.DurationSeconds,
                     Width =
@@ -545,8 +493,7 @@ public class CreateController : Controller
                     .GenerateClipAsync(
                         shot,
                         keyframe,
-                        clipFolderPath,
-                        session.Project.OutputResolution);
+                        clipFolderPath);
 
             clip.ClipUrl =
                 "/generated/clips/" +
@@ -630,7 +577,7 @@ public class CreateController : Controller
                 session.AnimatedClips
                     .Where(clip =>
                         clip.GeneratedSuccessfully &&
-                        System.IO.File.Exists(clip.ClipPath))
+                        File.Exists(clip.ClipPath))
                     .Select(clip => clip.ShotNumber)
                     .Distinct()
                     .Count();
@@ -683,13 +630,7 @@ public class CreateController : Controller
                     .AssembleAsync(
                         projectId,
                         session.AnimatedClips,
-                        finalFolderPath,
-                        session.Project.AudioMode,
-                        Path.Combine(
-                            _environment.WebRootPath,
-                            "uploads",
-                            session.Project.StoredFileName),
-                        session.Project.HasAudio);
+                        finalFolderPath);
 
             finalVideo.VideoUrl =
                 "/generated/final/" +
@@ -841,18 +782,6 @@ public class CreateController : Controller
                     dbProject.OutputType,
                 AnimationStyle =
                     dbProject.AnimationStyle,
-
-                AudioMode =
-                    dbProject.AudioMode,
-
-                AspectRatio =
-                    dbProject.AspectRatio,
-
-                OutputResolution =
-                    dbProject.OutputResolution,
-
-                TargetDurationSeconds =
-                    dbProject.TargetDurationSeconds,
                 DurationSeconds =
                     dbProject.DurationSeconds,
                 Width =

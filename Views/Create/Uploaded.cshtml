@@ -321,61 +321,642 @@
         }
     }
 
-    @if (animeKeyframe != null &&
-         animeKeyframe.GeneratedSuccessfully)
+    @{
+        var animeKeyframes =
+            ViewBag.AnimeKeyframes
+                as List<Viral2Anime.Models.Story.AnimeKeyframe>
+            ?? new List<Viral2Anime.Models.Story.AnimeKeyframe>();
+    }
+
+    @if (animeKeyframes.Count > 0)
     {
         <h2 class="fw-bold mt-5">
-            Anime Keyframe Test
+            Anime Storyboard
         </h2>
 
-        <div class="card mt-3">
-            <div class="card-body">
+        <p class="text-muted">
+            Original source frames compared with Viral2Anime's
+            locally generated anime keyframes.
+        </p>
 
-                <h3>
-                    Shot @animeKeyframe.ShotNumber —
-                    @animeKeyframe.Title
-                </h3>
+        @foreach (var keyframe in animeKeyframes
+            .OrderBy(frame => frame.ShotNumber))
+        {
+            <div class="card mt-4">
+                <div class="card-body">
 
-                <p class="text-muted">
-                    Comparing the real source frame with
-                    Viral2Anime's generated anime keyframe.
-                </p>
+                    <h3>
+                        Shot @keyframe.ShotNumber —
+                        @keyframe.Title
+                    </h3>
 
-                <div class="row g-4 mt-2">
+                    <div class="row g-4 mt-2">
 
-                    <div class="col-md-6">
+                        <div class="col-md-6">
 
-                        <h5 class="fw-bold">
-                            Original Reference
-                        </h5>
+                            <h5 class="fw-bold">
+                                Original Reference
+                            </h5>
 
-                        <img
-                            src="@animeKeyframe.SourceFrameUrl"
-                            alt="Original reference frame"
-                            class="img-fluid rounded border"
-                            style="width: 100%;" />
+                            <img
+                                src="@keyframe.SourceFrameUrl"
+                                alt="Original reference for shot @keyframe.ShotNumber"
+                                class="img-fluid rounded border"
+                                style="width: 100%;" />
 
-                    </div>
+                        </div>
 
-                    <div class="col-md-6">
+                        <div class="col-md-6">
 
-                        <h5 class="fw-bold">
-                            Generated Anime
-                        </h5>
+                            <h5 class="fw-bold">
+                                Generated Anime
+                            </h5>
 
-                        <img
-                            src="@animeKeyframe.GeneratedImageUrl"
-                            alt="Generated anime keyframe"
-                            class="img-fluid rounded border"
-                            style="width: 100%;" />
+                            <img
+                                src="@keyframe.GeneratedImageUrl"
+                                alt="Generated anime shot @keyframe.ShotNumber"
+                                class="img-fluid rounded border"
+                                style="width: 100%;" />
+
+                        </div>
 
                     </div>
 
                 </div>
+            </div>
+        }
+    }
+
+
+
+    @{
+        var progressStoryboard =
+            ViewBag.Storyboard
+                as Viral2Anime.Models.Story.AnimeStoryboard;
+
+        var progressKeyframes =
+            ViewBag.AnimeKeyframes
+                as List<Viral2Anime.Models.Story.AnimeKeyframe>
+            ?? new List<Viral2Anime.Models.Story.AnimeKeyframe>();
+
+        var progressClips =
+            ViewBag.AnimatedClips
+                as List<Viral2Anime.Models.Story.AnimeShotClip>
+            ?? new List<Viral2Anime.Models.Story.AnimeShotClip>();
+
+        var progressTotalShots =
+            progressStoryboard?.Shots.Count ?? 0;
+
+        var progressFinalVideo =
+            ViewBag.FinalVideoUrl as string
+            ?? string.Empty;
+    }
+
+    <div class="card mb-4 mt-4">
+        <div class="card-body">
+
+            <div class="d-flex flex-wrap
+                        justify-content-between
+                        align-items-center
+                        gap-3">
+
+                <div>
+
+                    <small class="text-muted">
+                        PROJECT
+                    </small>
+
+                    <h2 class="fw-bold mb-1">
+                        @Model.Title
+                    </h2>
+
+                    <span class="text-muted">
+                        @Model.OutputType ·
+                        @Model.AnimationStyle
+                    </span>
+
+                </div>
+
+                <a
+                    asp-controller="Projects"
+                    asp-action="Index"
+                    class="btn btn-outline-dark">
+                    All Projects
+                </a>
 
             </div>
+
+            <hr />
+
+            <div class="row g-3 text-center">
+
+                <div class="col-6 col-md">
+                    <div class="fw-bold text-success">✓</div>
+                    <small>Upload</small>
+                </div>
+
+                <div class="col-6 col-md">
+                    <div class="fw-bold text-success">✓</div>
+                    <small>Analysis</small>
+                </div>
+
+                <div class="col-6 col-md">
+                    <div class="fw-bold text-success">✓</div>
+                    <small>Storyboard</small>
+                </div>
+
+                <div class="col-6 col-md">
+                    <div class="fw-bold text-success">✓</div>
+                    <small>References</small>
+                </div>
+
+                <div class="col-6 col-md">
+                    <div class="fw-bold">
+                        @progressKeyframes.Count /
+                        @progressTotalShots
+                    </div>
+                    <small>Keyframes</small>
+                </div>
+
+                <div class="col-6 col-md">
+                    <div class="fw-bold">
+                        @progressClips.Count /
+                        @progressTotalShots
+                    </div>
+                    <small>Animated</small>
+                </div>
+
+                <div class="col-6 col-md">
+
+                    <div class="fw-bold
+                        @(string.IsNullOrWhiteSpace(progressFinalVideo)
+                            ? "text-muted"
+                            : "text-success")">
+
+                        @(string.IsNullOrWhiteSpace(progressFinalVideo)
+                            ? "○"
+                            : "✓")
+
+                    </div>
+
+                    <small>Final Render</small>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    @{
+        var animatedClips =
+            ViewBag.AnimatedClips
+                as List<Viral2Anime.Models.Story.AnimeShotClip>
+            ?? new List<Viral2Anime.Models.Story.AnimeShotClip>();
+
+        var finalVideoUrl =
+            ViewBag.FinalVideoUrl as string
+            ?? string.Empty;
+    }
+
+    @if (storyboard != null &&
+         storyboard.Shots.Count > 0)
+    {
+        <div class="mt-5">
+
+            <div class="d-flex flex-wrap
+                        justify-content-between
+                        align-items-center
+                        gap-3 mb-3">
+
+                <div>
+                    <h2 class="fw-bold mb-1">
+                        Anime Production
+                    </h2>
+
+                    <p class="text-muted mb-0">
+                        Generate, animate and preview each storyboard shot.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    id="render-final-button"
+                    class="btn btn-primary"
+                    data-project-id="@Model.Id">
+                    Render Final Video
+                </button>
+
+            </div>
+
+            <div
+                id="final-render-status"
+                class="mb-3">
+            </div>
+
+            <div
+                id="final-video-result"
+                class="mb-4">
+
+                @if (!string.IsNullOrWhiteSpace(
+                    finalVideoUrl))
+                {
+                    <div class="card">
+                        <div class="card-body">
+
+                            <h4 class="fw-bold">
+                                Final Anime Video
+                            </h4>
+
+                            <video
+                                controls
+                                class="w-100 rounded border mt-2"
+                                src="@finalVideoUrl">
+                            </video>
+
+                            <a
+                                href="@finalVideoUrl"
+                                download
+                                class="btn btn-success mt-3">
+                                Download MP4
+                            </a>
+
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+            <div class="row g-4">
+
+                @foreach (var shot in storyboard.Shots
+                    .OrderBy(item => item.ShotNumber))
+                {
+                    var existingKeyframe =
+                        animeKeyframes.FirstOrDefault(
+                            item =>
+                                item.ShotNumber ==
+                                shot.ShotNumber);
+
+                    var existingClip =
+                        animatedClips.FirstOrDefault(
+                            item =>
+                                item.ShotNumber ==
+                                shot.ShotNumber);
+
+                    <div class="col-lg-6">
+
+                        <div
+                            class="card h-100"
+                            id="production-card-@shot.ShotNumber">
+
+                            <div class="card-body">
+
+                                <div class="d-flex
+                                            justify-content-between
+                                            align-items-start
+                                            gap-3">
+
+                                    <div>
+
+                                        <h4 class="fw-bold mb-1">
+                                            Shot @shot.ShotNumber
+                                        </h4>
+
+                                        <div class="text-muted">
+                                            @shot.Title
+                                        </div>
+
+                                    </div>
+
+                                    <span
+                                        class="badge bg-secondary"
+                                        id="shot-badge-@shot.ShotNumber">
+
+                                        @if (existingClip != null)
+                                        {
+                                            <text>Animated</text>
+                                        }
+                                        else if (existingKeyframe != null)
+                                        {
+                                            <text>Keyframe Ready</text>
+                                        }
+                                        else
+                                        {
+                                            <text>Storyboard</text>
+                                        }
+
+                                    </span>
+
+                                </div>
+
+                                <hr />
+
+                                <div class="row">
+
+                                    <div class="col-sm-6">
+
+                                        <small class="text-muted">
+                                            Source
+                                        </small>
+
+                                        <div class="fw-semibold">
+                                            @shot.SourceStartSeconds.ToString("0.0")
+                                            →
+                                            @shot.SourceEndSeconds.ToString("0.0") sec
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-sm-6">
+
+                                        <small class="text-muted">
+                                            Anime Output
+                                        </small>
+
+                                        <div class="fw-semibold">
+                                            @shot.OutputStartSeconds.ToString("0.0")
+                                            →
+                                            @shot.OutputEndSeconds.ToString("0.0") sec
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="mt-3">
+
+                                    <small class="text-muted">
+                                        Action
+                                    </small>
+
+                                    <p class="mb-0">
+                                        @shot.CharacterAction
+                                    </p>
+
+                                </div>
+
+                                <div class="d-flex
+                                            flex-wrap
+                                            gap-2 mt-4">
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-dark generate-shot-button"
+                                        data-project-id="@Model.Id"
+                                        data-shot-number="@shot.ShotNumber">
+
+                                        @(existingKeyframe != null
+                                            ? "Regenerate Anime"
+                                            : "Generate Anime")
+
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-primary animate-shot-button"
+                                        data-project-id="@Model.Id"
+                                        data-shot-number="@shot.ShotNumber"
+                                        disabled="@(existingKeyframe == null ? "disabled" : null)">
+
+                                        @(existingClip != null
+                                            ? "Reanimate Shot"
+                                            : "Animate Shot")
+
+                                    </button>
+
+                                </div>
+
+                                <div
+                                    id="shot-status-@shot.ShotNumber"
+                                    class="mt-3">
+                                </div>
+
+                                <div
+                                    id="shot-keyframe-@shot.ShotNumber"
+                                    class="mt-3">
+
+                                    @if (existingKeyframe != null)
+                                    {
+                                        <h6 class="fw-bold">
+                                            Anime Keyframe
+                                        </h6>
+
+                                        <img
+                                            src="@existingKeyframe.GeneratedImageUrl"
+                                            alt="Anime keyframe for shot @shot.ShotNumber"
+                                            class="img-fluid rounded border"
+                                            style="width: 100%;" />
+                                    }
+
+                                </div>
+
+                                <div
+                                    id="shot-clip-@shot.ShotNumber"
+                                    class="mt-3">
+
+                                    @if (existingClip != null)
+                                    {
+                                        <h6 class="fw-bold">
+                                            Animated Clip
+                                        </h6>
+
+                                        <video
+                                            controls
+                                            class="w-100 rounded border"
+                                            src="@existingClip.ClipUrl">
+                                        </video>
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
         </div>
     }
+
+
+
+    <div class="card mt-5 mb-4">
+        <div class="card-body p-4">
+
+            <div class="d-flex flex-wrap
+                        justify-content-between
+                        align-items-start
+                        gap-3">
+
+                <div>
+                    <small class="text-muted">
+                        FINAL OUTPUT
+                    </small>
+
+                    <h2 class="fw-bold mb-1">
+                        Viral2Anime Export
+                    </h2>
+
+                    <p class="text-muted mb-0">
+                        Review the production settings and export
+                        the completed anime video.
+                    </p>
+                </div>
+
+                <span class="badge bg-dark">
+                    @Model.OutputType
+                </span>
+            </div>
+
+            <hr />
+
+            <div class="row g-3">
+
+                <div class="col-6 col-md-3">
+                    <small class="text-muted d-block">
+                        Aspect Ratio
+                    </small>
+
+                    <strong>
+                        @Model.AspectRatio
+                    </strong>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <small class="text-muted d-block">
+                        Resolution
+                    </small>
+
+                    <strong>
+                        @Model.OutputResolution
+                    </strong>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <small class="text-muted d-block">
+                        Target Length
+                    </small>
+
+                    <strong>
+                        @Model.TargetDurationSeconds sec
+                    </strong>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <small class="text-muted d-block">
+                        Audio
+                    </small>
+
+                    <strong>
+                        @Model.AudioMode
+                    </strong>
+                </div>
+
+            </div>
+
+            <hr />
+
+            @{
+                var exportStoryboard =
+                    ViewBag.Storyboard
+                        as Viral2Anime.Models.Story.AnimeStoryboard;
+
+                var exportClips =
+                    ViewBag.AnimatedClips
+                        as List<Viral2Anime.Models.Story.AnimeShotClip>
+                    ?? new List<Viral2Anime.Models.Story.AnimeShotClip>();
+
+                var exportTotalShots =
+                    exportStoryboard?.Shots.Count ?? 0;
+
+                var exportCompletedShots =
+                    exportClips
+                        .Where(x =>
+                            x.GeneratedSuccessfully)
+                        .Select(x => x.ShotNumber)
+                        .Distinct()
+                        .Count();
+
+                var exportReady =
+                    exportTotalShots > 0 &&
+                    exportCompletedShots >= exportTotalShots;
+
+                var exportFinalUrl =
+                    ViewBag.FinalVideoUrl as string
+                    ?? string.Empty;
+            }
+
+            <div class="d-flex flex-wrap
+                        justify-content-between
+                        align-items-center
+                        gap-3">
+
+                <div>
+
+                    @if (exportReady)
+                    {
+                        <div class="text-success fw-bold">
+                            ✓ Ready for final render
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted fw-bold">
+                            ○ Production incomplete
+                        </div>
+                    }
+
+                    <small class="text-muted">
+                        @exportCompletedShots /
+                        @exportTotalShots shots animated
+                    </small>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="export-render-button"
+                    class="btn btn-dark"
+                    disabled="@(!exportReady ? "disabled" : null)">
+                    Render Final Video
+                </button>
+
+            </div>
+
+            <div
+                id="export-status"
+                class="mt-3">
+            </div>
+
+            <div
+                id="export-result"
+                class="mt-4">
+
+                @if (!string.IsNullOrWhiteSpace(
+                    exportFinalUrl))
+                {
+                    <video
+                        controls
+                        class="w-100 rounded border"
+                        src="@exportFinalUrl">
+                    </video>
+
+                    <a
+                        href="@exportFinalUrl"
+                        download
+                        class="btn btn-success mt-3">
+                        Download MP4
+                    </a>
+                }
+
+            </div>
+
+        </div>
+    </div>
 
     @if (frameUrls.Count > 0)
     {
@@ -402,3 +983,478 @@
     }
 
 </div>
+
+
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        function postForm(url, values) {
+
+            const body =
+                new URLSearchParams();
+
+            Object.keys(values)
+                .forEach(key =>
+                    body.append(
+                        key,
+                        values[key]));
+
+            return fetch(
+                url,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+                    body: body.toString()
+                });
+        }
+
+
+        document
+            .querySelectorAll(
+                ".generate-shot-button")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    async function () {
+
+                        const projectId =
+                            this.dataset.projectId;
+
+                        const shotNumber =
+                            this.dataset.shotNumber;
+
+                        const status =
+                            document.getElementById(
+                                `shot-status-${shotNumber}`);
+
+                        const keyframeArea =
+                            document.getElementById(
+                                `shot-keyframe-${shotNumber}`);
+
+                        const animateButton =
+                            document.querySelector(
+                                `.animate-shot-button[data-shot-number="${shotNumber}"]`);
+
+                        const badge =
+                            document.getElementById(
+                                `shot-badge-${shotNumber}`);
+
+                        const oldText =
+                            this.textContent;
+
+                        this.disabled = true;
+
+                        this.textContent =
+                            "Generating...";
+
+                        status.innerHTML =
+                            `<div class="alert alert-info">
+                                Generating anime keyframe locally.
+                                This may take a few minutes.
+                            </div>`;
+
+                        try {
+
+                            const response =
+                                await postForm(
+                                    "/Create/GenerateShot",
+                                    {
+                                        projectId,
+                                        shotNumber
+                                    });
+
+                            const data =
+                                await response.json();
+
+                            if (!response.ok ||
+                                !data.success) {
+
+                                throw new Error(
+                                    data.message ||
+                                    "Anime generation failed.");
+                            }
+
+                            keyframeArea.innerHTML =
+                                `
+                                <h6 class="fw-bold">
+                                    Anime Keyframe
+                                </h6>
+
+                                <img
+                                    src="${data.generatedImageUrl}?t=${Date.now()}"
+                                    class="img-fluid rounded border"
+                                    style="width: 100%;"
+                                    alt="Generated anime shot ${shotNumber}" />
+                                `;
+
+                            status.innerHTML =
+                                `<div class="alert alert-success">
+                                    Anime keyframe ready.
+                                </div>`;
+
+                            badge.textContent =
+                                "Keyframe Ready";
+
+                            badge.className =
+                                "badge bg-info text-dark";
+
+                            animateButton.disabled =
+                                false;
+
+                            this.textContent =
+                                "Regenerate Anime";
+                        }
+                        catch (error) {
+
+                            status.innerHTML =
+                                `<div class="alert alert-danger">
+                                    ${error.message}
+                                </div>`;
+
+                            this.textContent =
+                                oldText;
+                        }
+                        finally {
+
+                            this.disabled = false;
+                        }
+                    });
+            });
+
+
+        document
+            .querySelectorAll(
+                ".animate-shot-button")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    async function () {
+
+                        const projectId =
+                            this.dataset.projectId;
+
+                        const shotNumber =
+                            this.dataset.shotNumber;
+
+                        const status =
+                            document.getElementById(
+                                `shot-status-${shotNumber}`);
+
+                        const clipArea =
+                            document.getElementById(
+                                `shot-clip-${shotNumber}`);
+
+                        const badge =
+                            document.getElementById(
+                                `shot-badge-${shotNumber}`);
+
+                        const oldText =
+                            this.textContent;
+
+                        this.disabled = true;
+
+                        this.textContent =
+                            "Animating...";
+
+                        status.innerHTML =
+                            `<div class="alert alert-info">
+                                Creating animated shot...
+                            </div>`;
+
+                        try {
+
+                            const response =
+                                await postForm(
+                                    "/Create/AnimateShot",
+                                    {
+                                        projectId,
+                                        shotNumber
+                                    });
+
+                            const data =
+                                await response.json();
+
+                            if (!response.ok ||
+                                !data.success) {
+
+                                throw new Error(
+                                    data.message ||
+                                    "Animation failed.");
+                            }
+
+                            clipArea.innerHTML =
+                                `
+                                <h6 class="fw-bold">
+                                    Animated Clip
+                                </h6>
+
+                                <video
+                                    controls
+                                    class="w-100 rounded border"
+                                    src="${data.clipUrl}?t=${Date.now()}">
+                                </video>
+
+                                <small class="text-muted">
+                                    ${Number(data.durationSeconds).toFixed(1)}
+                                    seconds
+                                </small>
+                                `;
+
+                            status.innerHTML =
+                                `<div class="alert alert-success">
+                                    Shot animation ready.
+                                </div>`;
+
+                            badge.textContent =
+                                "Animated";
+
+                            badge.className =
+                                "badge bg-success";
+
+                            this.textContent =
+                                "Reanimate Shot";
+                        }
+                        catch (error) {
+
+                            status.innerHTML =
+                                `<div class="alert alert-danger">
+                                    ${error.message}
+                                </div>`;
+
+                            this.textContent =
+                                oldText;
+                        }
+                        finally {
+
+                            this.disabled = false;
+                        }
+                    });
+            });
+
+
+        const renderButton =
+            document.getElementById(
+                "render-final-button");
+
+        if (renderButton) {
+
+            renderButton.addEventListener(
+                "click",
+                async function () {
+
+                    const projectId =
+                        this.dataset.projectId;
+
+                    const status =
+                        document.getElementById(
+                            "final-render-status");
+
+                    const result =
+                        document.getElementById(
+                            "final-video-result");
+
+                    const oldText =
+                        this.textContent;
+
+                    this.disabled = true;
+
+                    this.textContent =
+                        "Rendering...";
+
+                    status.innerHTML =
+                        `<div class="alert alert-info">
+                            Assembling completed anime shots...
+                        </div>`;
+
+                    try {
+
+                        const response =
+                            await postForm(
+                                "/Create/RenderFinal",
+                                {
+                                    projectId
+                                });
+
+                        const data =
+                            await response.json();
+
+                        if (!response.ok ||
+                            !data.success) {
+
+                            throw new Error(
+                                data.message ||
+                                "Final render failed.");
+                        }
+
+                        status.innerHTML =
+                            `<div class="alert alert-success">
+                                Final video rendered successfully.
+                            </div>`;
+
+                        result.innerHTML =
+                            `
+                            <div class="card">
+                                <div class="card-body">
+
+                                    <h4 class="fw-bold">
+                                        Final Anime Video
+                                    </h4>
+
+                                    <p class="text-muted">
+                                        ${data.shotCount} shots ·
+                                        ${Number(data.durationSeconds).toFixed(1)}
+                                        seconds
+                                    </p>
+
+                                    <video
+                                        controls
+                                        class="w-100 rounded border"
+                                        src="${data.videoUrl}?t=${Date.now()}">
+                                    </video>
+
+                                    <a
+                                        href="${data.videoUrl}"
+                                        download
+                                        class="btn btn-success mt-3">
+                                        Download MP4
+                                    </a>
+
+                                </div>
+                            </div>
+                            `;
+
+                        this.textContent =
+                            "Render Again";
+                    }
+                    catch (error) {
+
+                        status.innerHTML =
+                            `<div class="alert alert-danger">
+                                ${error.message}
+                            </div>`;
+
+                        this.textContent =
+                            oldText;
+                    }
+                    finally {
+
+                        this.disabled = false;
+                    }
+                });
+        }
+
+    });
+
+    const exportRenderButton =
+        document.getElementById(
+            "export-render-button");
+
+    if (exportRenderButton) {
+
+        exportRenderButton.addEventListener(
+            "click",
+            async function () {
+
+                const status =
+                    document.getElementById(
+                        "export-status");
+
+                const result =
+                    document.getElementById(
+                        "export-result");
+
+                const originalText =
+                    this.textContent;
+
+                this.disabled = true;
+                this.textContent =
+                    "Rendering...";
+
+                status.innerHTML =
+                    `<div class="alert alert-info">
+                        Building final Viral2Anime MP4...
+                    </div>`;
+
+                try {
+
+                    const body =
+                        new URLSearchParams();
+
+                    body.append(
+                        "projectId",
+                        "@Model.Id");
+
+                    const response =
+                        await fetch(
+                            "/Create/RenderFinal",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/x-www-form-urlencoded"
+                                },
+                                body: body.toString()
+                            });
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok ||
+                        !data.success) {
+
+                        throw new Error(
+                            data.message ||
+                            "Final render failed.");
+                    }
+
+                    status.innerHTML =
+                        `<div class="alert alert-success">
+                            Final video created successfully.
+                        </div>`;
+
+                    result.innerHTML =
+                        `
+                        <video
+                            controls
+                            class="w-100 rounded border"
+                            src="${data.videoUrl}?t=${Date.now()}">
+                        </video>
+
+                        <a
+                            href="${data.videoUrl}"
+                            download
+                            class="btn btn-success mt-3">
+                            Download MP4
+                        </a>
+                        `;
+
+                    this.textContent =
+                        "Render Again";
+                }
+
+                catch (error) {
+
+                    status.innerHTML =
+                        `<div class="alert alert-danger">
+                            ${error.message}
+                        </div>`;
+
+                    this.textContent =
+                        originalText;
+                }
+
+                finally {
+
+                    this.disabled = false;
+                }
+            });
+    }
+
+</script>

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Viral2Anime.Models.Story;
 
@@ -5,39 +6,23 @@ namespace Viral2Anime.Services.StoryGeneration;
 
 public class ReferenceFrameService
 {
-    public List<StoryboardReferenceFrame> MatchFrames(
-        AnimeStoryboard storyboard,
-        List<string> extractedFramePaths,
-        string frameFolderName)
+    public async Task<List<StoryboardReferenceFrame>>
+        ExtractExactFramesAsync(
+            AnimeStoryboard storyboard,
+            string videoPath,
+            string outputFolder,
+            string frameFolderName)
     {
-        var references = new List<StoryboardReferenceFrame>();
+        var references =
+            new List<StoryboardReferenceFrame>();
 
-        if (storyboard.Shots.Count == 0 ||
-            extractedFramePaths.Count == 0)
+        Directory.CreateDirectory(outputFolder);
+
+        foreach (var shot in storyboard.Shots
+            .OrderBy(item => item.ShotNumber))
         {
-            return references;
-        }
-
-        var frames = extractedFramePaths
-            .Select(path => new
-            {
-                Path = path,
-                Index = GetFrameIndex(path)
-            })
-            .Where(x => x.Index > 0)
-            .OrderBy(x => x.Index)
-            .ToList();
-
-        if (frames.Count == 0)
-        {
-            return references;
-        }
-
-        const double frameIntervalSeconds = 3.0;
-
-        foreach (var shot in storyboard.Shots)
-        {
-            var targetSeconds = shot.ReferenceFrameSeconds;
+            var targetSeconds =
+                shot.ReferenceFrameSeconds;
 
             if (targetSeconds <= 0)
             {
@@ -46,55 +31,115 @@ public class ReferenceFrameService
                      shot.SourceEndSeconds) / 2.0;
             }
 
-            var targetFrameNumber =
-                (int)Math.Round(
-                    targetSeconds / frameIntervalSeconds,
-                    MidpointRounding.AwayFromZero);
-
-            if (targetFrameNumber < 1)
+            if (targetSeconds < 0)
             {
-                targetFrameNumber = 1;
+                targetSeconds = 0;
             }
 
-            var closestFrame = frames
-                .OrderBy(frame =>
-                    Math.Abs(frame.Index - targetFrameNumber))
-                .First();
+            var fileName =
+                $"shot_{shot.ShotNumber:000}_reference.jpg";
 
-            references.Add(new StoryboardReferenceFrame
-            {
-                ShotNumber = shot.ShotNumber,
-                TargetSeconds = targetSeconds,
-                FramePath = closestFrame.Path,
-                FrameUrl =
-                    "/generated/frames/" +
-                    frameFolderName +
-                    "/" +
-                    Path.GetFileName(closestFrame.Path)
-            });
+            var outputPath =
+                Path.Combine(
+                    outputFolder,
+                    fileName);
+
+            await ExtractFrameAsync(
+                videoPath,
+                targetSeconds,
+                outputPath);
+
+            references.Add(
+                new StoryboardReferenceFrame
+                {
+                    ShotNumber =
+                        shot.ShotNumber,
+
+                    TargetSeconds =
+                        targetSeconds,
+
+                    FramePath =
+                        outputPath,
+
+                    FrameUrl =
+                        "/generated/references/" +
+                        frameFolderName +
+                        "/" +
+                        fileName
+                });
         }
 
         return references;
     }
 
-    private static int GetFrameIndex(string path)
+    private static async Task ExtractFrameAsync(
+        string videoPath,
+        double seconds,
+        string outputPath)
     {
-        var fileName =
-            Path.GetFileNameWithoutExtension(path);
+        var startInfo =
+            new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-        var parts = fileName.Split('_');
+        startInfo.ArgumentList.Add("-y");
 
-        if (parts.Length == 0)
+        startInfo.ArgumentList.Add("-ss");
+
+        startInfo.ArgumentList.Add(
+            seconds.ToString(
+                "0.000",
+                CultureInfo.InvariantCulture));
+
+        startInfo.ArgumentList.Add("-i");
+        startInfo.ArgumentList.Add(videoPath);
+
+        startInfo.ArgumentList.Add("-frames:v");
+        startInfo.ArgumentList.Add("1");
+
+        startInfo.ArgumentList.Add("-q:v");
+        startInfo.ArgumentList.Add("2");
+
+        startInfo.ArgumentList.Add(outputPath);
+
+        using var process =
+            new Process
+            {
+                StartInfo = startInfo
+            };
+
+        process.Start();
+
+        var outputTask =
+            process.StandardOutput.ReadToEndAsync();
+
+        var errorTask =
+            process.StandardError.ReadToEndAsync();
+
+        await process.WaitForExitAsync();
+
+        await outputTask;
+
+        var error =
+            await errorTask;
+
+        if (process.ExitCode != 0)
         {
-            return 0;
+            throw new Exception(
+                $"FFmpeg exact frame extraction failed at " +
+                $"{seconds:0.000}s:\n{error}");
         }
 
-        return int.TryParse(
-            parts[^1],
-            NumberStyles.Integer,
-            CultureInfo.InvariantCulture,
-            out var index)
-            ? index
-            : 0;
+        if (!File.Exists(outputPath))
+        {
+            throw new Exception(
+                $"FFmpeg did not create reference frame " +
+                $"for {seconds:0.000}s.");
+        }
     }
 }

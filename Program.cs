@@ -1,6 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using Viral2Anime.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+
+
+builder.Services.AddDbContext<ApplicationDbContext>(
+    options =>
+        options.UseSqlite(
+            builder.Configuration.GetConnectionString(
+                "DefaultConnection")));
 
 builder.Services.AddScoped<
     Viral2Anime.Services.VideoAnalysis.VideoMetadataService>();
@@ -19,6 +29,18 @@ builder.Services.AddHttpClient<
 
 builder.Services.AddScoped<
     Viral2Anime.Services.Animation.AnimeKeyframeService>();
+
+
+builder.Services.AddScoped<
+    Viral2Anime.Services.Animation.AnimeShotAnimationService>();
+
+
+builder.Services.AddScoped<
+    Viral2Anime.Services.Animation.FinalVideoAssemblyService>();
+
+
+builder.Services.AddSingleton<
+    Viral2Anime.Services.ProjectState.ProjectProcessingStore>();
 
 var app = builder.Build();
 

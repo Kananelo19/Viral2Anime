@@ -1,0 +1,263 @@
+@model List<Viral2Anime.Models.Project.ViralProject>
+
+@using System.Text.Json
+@using Viral2Anime.Models.Story
+
+@{
+    ViewData["Title"] = "Projects";
+
+    var jsonOptions =
+        new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+}
+
+<div class="py-4">
+
+    <div class="d-flex flex-wrap
+                justify-content-between
+                align-items-center
+                gap-3 mb-4">
+
+        <div>
+
+            <small class="text-muted">
+                VIRAL2ANIME
+            </small>
+
+            <h1 class="fw-bold mb-1">
+                Projects
+            </h1>
+
+            <p class="text-muted mb-0">
+                Continue previous anime productions
+                without re-running analysis.
+            </p>
+
+        </div>
+
+        <a
+            asp-controller="Create"
+            asp-action="Index"
+            class="btn btn-dark">
+            + New Project
+        </a>
+
+    </div>
+
+
+    @if (Model.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body py-5 text-center">
+
+                <h3 class="fw-bold">
+                    No projects yet
+                </h3>
+
+                <p class="text-muted">
+                    Upload your first video to begin.
+                </p>
+
+                <a
+                    asp-controller="Create"
+                    asp-action="Index"
+                    class="btn btn-dark">
+                    Create Project
+                </a>
+
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+
+            @foreach (var project in Model)
+            {
+                var storyboard =
+                    string.IsNullOrWhiteSpace(
+                        project.StoryboardJson)
+                        ? new AnimeStoryboard()
+                        : JsonSerializer.Deserialize<
+                            AnimeStoryboard>(
+                                project.StoryboardJson,
+                                jsonOptions)
+                          ?? new AnimeStoryboard();
+
+                var keyframes =
+                    string.IsNullOrWhiteSpace(
+                        project.GeneratedKeyframesJson)
+                        ? new List<AnimeKeyframe>()
+                        : JsonSerializer.Deserialize<
+                            List<AnimeKeyframe>>(
+                                project.GeneratedKeyframesJson,
+                                jsonOptions)
+                          ?? new List<AnimeKeyframe>();
+
+                var clips =
+                    string.IsNullOrWhiteSpace(
+                        project.AnimatedClipsJson)
+                        ? new List<AnimeShotClip>()
+                        : JsonSerializer.Deserialize<
+                            List<AnimeShotClip>>(
+                                project.AnimatedClipsJson,
+                                jsonOptions)
+                          ?? new List<AnimeShotClip>();
+
+                var totalShots =
+                    storyboard.Shots.Count;
+
+                <div class="col-md-6 col-xl-4">
+
+                    <div class="card h-100">
+
+                        <div class="card-body">
+
+                            <div class="d-flex
+                                        justify-content-between
+                                        gap-3">
+
+                                <div>
+
+                                    <small class="text-muted">
+                                        @project.ContentType
+                                    </small>
+
+                                    <h4 class="fw-bold mb-1">
+                                        @project.Title
+                                    </h4>
+
+                                </div>
+
+                                <span class="badge bg-dark
+                                             align-self-start">
+                                    @project.Stage
+                                </span>
+
+                            </div>
+
+                            <div class="text-muted mt-2">
+                                @project.OutputType
+                            </div>
+
+                            <hr />
+
+                            <div class="row text-center">
+
+                                <div class="col">
+
+                                    <div class="fw-bold">
+                                        @keyframes.Count /
+                                        @totalShots
+                                    </div>
+
+                                    <small class="text-muted">
+                                        Keyframes
+                                    </small>
+
+                                </div>
+
+                                <div class="col">
+
+                                    <div class="fw-bold">
+                                        @clips.Count /
+                                        @totalShots
+                                    </div>
+
+                                    <small class="text-muted">
+                                        Animated
+                                    </small>
+
+                                </div>
+
+                                <div class="col">
+
+                                    <div class="fw-bold">
+                                        @(string.IsNullOrWhiteSpace(
+                                            project.FinalVideoFileName)
+                                            ? "○"
+                                            : "✓")
+                                    </div>
+
+                                    <small class="text-muted">
+                                        Render
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                            <hr />
+
+                            <small class="text-muted">
+                                Updated
+                                @project.UpdatedAt
+                                    .ToLocalTime()
+                                    .ToString(
+                                        "MMM d, yyyy h:mm tt")
+                            </small>
+
+                            <div class="d-flex
+                                        flex-wrap
+                                        gap-2 mt-3">
+
+                                <a
+                                    asp-controller="Projects"
+                                    asp-action="Details"
+                                    asp-route-id="@project.Id"
+                                    class="btn btn-dark">
+                                    Open
+                                </a>
+
+                                <form
+                                    asp-controller="Projects"
+                                    asp-action="Duplicate"
+                                    method="post">
+
+                                    <input
+                                        type="hidden"
+                                        name="id"
+                                        value="@project.Id" />
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-outline-secondary">
+                                        Duplicate
+                                    </button>
+
+                                </form>
+
+                                <form
+                                    asp-controller="Projects"
+                                    asp-action="Delete"
+                                    method="post"
+                                    onsubmit="return confirm('Delete this Viral2Anime project?');">
+
+                                    <input
+                                        type="hidden"
+                                        name="id"
+                                        value="@project.Id" />
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-outline-danger">
+                                        Delete
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>
